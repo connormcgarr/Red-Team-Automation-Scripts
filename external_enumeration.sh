@@ -89,17 +89,25 @@ echo "[+] All DNS records (via dig) for $domain have been saved in DNS_Records_$
 echo "[+] A cleaner version of dig DNS records for $domain is located in Cleaned_Up_DNS_Records_$domain.txt"
 
 # Shodan function
+# Shodan function
 function run_shodan
 {
 
 	shodan init $shodan_api >/dev/null
 
+	# Create shodan directory to store Shodan results
+	mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION/Shodan_Output
+
 	# Any easy wins?
-	shodan download search "port:21,23,139,445,3389,5900" $domain
+	shodan download search "port:21,23,139,445,3389,5900" $domain >/dev/null
+	shodan parse --fields ip_str,port,org --separator , search.json.gz >> $PWD/INITIAL_EXTERNAL_ENUMERATION/Shodan_Output/21_23_139_445_3389_5900_SHODAN_OUTPUT.csv
 
 	# Web servers?
-	shodan download search "port:80,443,8080,8443" $domain
+	shodan download search "port:80,443,8080,8443" $domain >/dev/null
+	shodan parse --fields ip_str,port,org --separator , search.json.gz >> $PWD/INITIAL_EXTERNAL_ENUMERATION/Shodan_Output/WEB_SERVERS_SHODAN_OUTPUT.csv
 
+	# Clean up
+	rm $PWD/search.json.gz
 }
 
 run_shodan
