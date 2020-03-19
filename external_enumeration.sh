@@ -95,11 +95,13 @@ function run_shodan
 	shodan init $shodan_api >/dev/null
 
 	# Any easy wins?
-	shodan download search "port:21,23,139,445,3389,5900" $domain easy_wins.json.gz
+	shodan download search "port:21,23,139,445,3389,5900" $domain
 
 	# Web servers?
-	shodan download search "port:80,443,8080,8443" $domain web_servers.json.gz
+	shodan download search "port:80,443,8080,8443" $domain
 
 }
 
 run_shodan
+
+# TODO
