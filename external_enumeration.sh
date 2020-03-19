@@ -46,7 +46,7 @@ else
 fi
 
 # Make direcotry for all output
-echo "[+] Creating directory INITIAL_EXTERNAL_ENUMERATION in current directory..."
+echo "[+] Creating directory INITIAL_EXTERNAL_ENUMERATION in the current directory..."
 mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION
 
 echo "[+] All ouput files will be written to $PWD/INITIAL_EXTERNAL_ENUMERATION!"
