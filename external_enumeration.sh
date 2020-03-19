@@ -48,7 +48,7 @@ mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION
 
 echo "[+] All ouput files will be written to $PWD/INITIAL_EXTERNAL_ENUMERATION!"
 
-# Sleeping for 2 seconds to inform user wher files will be written to
+# Sleeping for 2 seconds to inform user where files will be written to
 sleep 2
 
 # WHOIS function
