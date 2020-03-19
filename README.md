@@ -2,8 +2,6 @@
 Scripts to help automate tedious red teaming enumeration and tasks.
 
 
-LIST OF SCRIPTS
----
 
 external_enumeration.sh
 --
