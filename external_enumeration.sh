@@ -118,7 +118,7 @@ function run_shodan
 
 	# SSL certificates?
 	echo "[+] Downloading Shodan information for any SSL certificates referencing $domain_no_com. Please wait- this may take some time..."
-	shodan download search "ssl:*$domain_no_com" 200 >/dev/null
+	shodan download search "ssl:*$domain_no_com" >/dev/null
 	shodan parse --fields ip_str,port,org --separator , search.json.gz >> $PWD/INITIAL_EXTERNAL_ENUMERATION/Shodan_Output/SSL_CERTS_SHODAN_OUTPUT.csv
 
 	# Clean up
