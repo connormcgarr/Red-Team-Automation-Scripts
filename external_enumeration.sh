@@ -9,22 +9,44 @@ domain=$1
 # Extracting just domain for organizational SSL search in Shodan
 domain_no_com=$(echo $domain | awk -F '.' '{print $1}')
 
-# Shodan API key variable
+# Shodan API token variable
 shodan_api=$2
+
+# RiskIQ email
+risk_iq_email=$3
+
+# RiskIQ API secret variable
+risk_iq_api=$4
 
 # Error handling for lack of command line arguments
 if [ -z "$domain" ]
 	then
-		echo "[-] No domain specified! Please specify a domain and Shodan API token."
-		echo "Usage: ./external_enumeration.sh <DOMAIN.com> <SHODAN_API_TOKEN>"
+		echo -e "\e[31m[-] No domain specified! Please specify a domain, Shodan API token, RiskIQ email, and RiskIQ API secret.\e[0m"
+		echo "Usage: ./external_enumeration.sh <DOMAIN.com> <SHODAN_API_TOKEN> <RISK_IQ_EMAIL> <RISKIQ_API_SECRET>"
 	exit 1
 fi
 
 # Error handling for no Shodan API key
 if [ -z "$shodan_api" ]
 	then
-		echo "[-] You seemed to have entered a domain- but no Shodan API token!"
-		echo "Usage: ./external_enumeration.sh <DOMAIN.com> <SHODAN_API_TOKEN>"
+		echo -e "\e[31m[-] You seemed to have entered a domain- but no Shodan API token, RiskIQ email, or RiskIQ API secret!\e[0m"
+		echo "Usage: ./external_enumeration.sh <DOMAIN.com> <SHODAN_API_TOKEN> <RISK_IQ_EMAIL> <RISKIQ_API_SECRET>"
+	exit 1
+fi
+
+# Error handling for no RiskIQ email
+if [ -z "$risk_iq_email" ]
+	then
+		echo -e "\e[31m[-] You seemed to have entered a domain and Shodan API token- but no RiskIQ email or RiskIQ API secret!\e[0m"
+		echo "Usage: ./external_enumeration.sh <DOMAIN.com> <SHODAN_API_TOKEN> <RISK_IQ_EMAIL> <RISK_IQ_EMAIL> <RISKIQ_API_SECRET>"
+	exit 1
+fi
+
+# Error handline for no RiskIQ API secret
+if [ -z "$risk_iq_api" ]
+	then
+		echo -e "\e[31m[-] You seemed to have entered a domain, Shodan API token, and RiskIQ email- but no RiskIQ API secret!\e[0m"
+		echo "Usage: ./external_enumeration.sh <DOMAIN.com> <SHODAN_API_TOKEN> <RISKIQ_EMAIL> <RISKIQ_API_SECRET>"
 	exit 1
 fi
 
@@ -33,7 +55,7 @@ if pip --version >/dev/null 2>&1
 then
 	echo "[+] Python-pip is installed! Continuing on..."
 else
-	echo "It seems as though you are missing python-pip. Please install it with sudo apt-get install python-pip"
+	echo -e "\e[31m[-] It seems as though you are missing python-pip. Please install it with sudo apt-get install python-pip\e[0m"
 	exit 1
 fi
 # Error handling for missing shodan
@@ -41,7 +63,7 @@ if shodan -h >/dev/null 2>&1
 then
 	echo "[+] Shodan is installed! Continuing on..."
 else
-	echo "[-] It seems as though you are missing shodan. Please install it with sudo pip install shodan"
+	echo -e "\e[31m[-] It seems as though you are missing shodan. Please install it with sudo pip install shodan\e[0m"
 	exit 1
 fi
 
@@ -49,7 +71,7 @@ fi
 echo "[+] Creating directory INITIAL_EXTERNAL_ENUMERATION in the current directory..."
 mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION
 
-echo "[+] All ouput files will be written to $PWD/INITIAL_EXTERNAL_ENUMERATION!"
+echo -e "\e[93m[+] All ouput files will be written to $PWD/INITIAL_EXTERNAL_ENUMERATION!\e[0m"
 
 # Sleeping for 2 seconds to inform user where files will be written to
 sleep 2
@@ -57,7 +79,7 @@ sleep 2
 # WHOIS function
 function who_is
 {
-	whois $domain >> $PWD/INITIAL_EXTERNAL_ENUMERATION/WHO_IS_$domain.txt
+	whois -H $domain >> $PWD/INITIAL_EXTERNAL_ENUMERATION/WHO_IS_$domain.txt
 }
 
 # Print update
@@ -111,7 +133,7 @@ function run_shodan
 	shodan parse --fields ip_str,port,org --separator , search.json.gz >> $PWD/INITIAL_EXTERNAL_ENUMERATION/Shodan_Output/WEB_SERVERS_SHODAN_OUTPUT.csv
 
 	# SSL certificates notice
-	echo "[+] Please note- if the name of the organization is different than $domain_no_com- please perform a manual search for SSL certificates referencing the organization..."
+	echo -e "\e[93m[+] Please note- if the name of the organization is different than $domain_no_com- please perform a manual search for SSL certificates referencing the organization...\e[0m"
 
 	# Sleep to allow user to read information above
 	sleep 5
@@ -128,4 +150,21 @@ function run_shodan
 
 run_shodan
 
-# TODO
+function risk_iq
+{
+
+	# API Query for passive DNS records
+	echo "[+] Downloading RiskIQ passive DNS records..."
+
+	# Let cURL breathe
+	sleep 2
+	
+	# Starting RiskIQ API queries
+	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/dns/passive?query=$domain"
+}
+
+risk_iq
+
+#TODO
+# 1. Add more RiskIQ queries
+# 2. Output json to file and parse json into csv
