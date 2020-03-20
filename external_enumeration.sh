@@ -55,15 +55,25 @@ if pip --version >/dev/null 2>&1
 then
 	echo "[+] Python-pip is installed! Continuing on..."
 else
-	echo -e "\e[31m[-] It seems as though you are missing python-pip. Please install it with sudo apt-get install python-pip\e[0m"
+	echo -e "\e[31m[-] It seems as though you are missing python-pip. Please install it with sudo apt-get install python-pip.\e[0m"
 	exit 1
 fi
+
 # Error handling for missing shodan
 if shodan -h >/dev/null 2>&1
 then
 	echo "[+] Shodan is installed! Continuing on..."
 else
-	echo -e "\e[31m[-] It seems as though you are missing shodan. Please install it with sudo pip install shodan\e[0m"
+	echo -e "\e[31m[-] It seems as though you are missing shodan. Please install it with sudo pip install shodan.\e[0m"
+	exit 1
+fi
+
+# Error handling for missing jq
+if jq --version >/dev/null 2>&1
+then
+	echo "[+] jq is installed! Continuing on..."
+else
+	echo -e "\e[31m[-] It seems as though you are missing jq. Please install it with sudo apt install jq. Your future self will thank you!\e[0m"
 	exit 1
 fi
 
@@ -79,12 +89,13 @@ sleep 2
 # WHOIS function
 function who_is
 {
-	whois -H $domain >> $PWD/INITIAL_EXTERNAL_ENUMERATION/WHO_IS_$domain.txt
+	whois $domain >> $PWD/INITIAL_EXTERNAL_ENUMERATION/WHO_IS_$domain.txt
 }
 
-# Print update
-echo "[+] WHOIS enumeration for $domain is done!"
 who_is
+
+# Print update for whois function
+echo "[+] WHOIS enumeration for $domain is done!"
 
 # DNS records function
 function get_all_dns_records
@@ -153,18 +164,47 @@ run_shodan
 function risk_iq
 {
 
+	# Create directory for RiskIQ API queries
+	mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output
+
 	# API Query for passive DNS records
-	echo "[+] Downloading RiskIQ passive DNS records..."
+	echo "[+] Downloading RiskIQ passive DNS records and resolutions..."
 
 	# Let cURL breathe
 	sleep 2
-	
+
 	# Starting RiskIQ API queries
-	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/dns/passive?query=$domain"
+
+	# Grabbing RiskIQ DNS information
+	echo "[+] Pulling RiskIQ DNS information..."
+	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/dns/passive?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json
+	jq -r '.results[] | [.resolve, .recordType, .firstSeen, .lastSeen | tostring] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_DNS_RECORDS_$domain.csv
+
+	# Again, let cURL breath
+	sleep 1
+
+	# Grabbing RiskIQ subdomain information
+	echo "[+] Pulling RiskIQ subdomain information..."
+	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/enrichment/subdomains?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_1.json 2>&1
+	jq -r '.subdomains | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_1.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SUBDOMAINS_$domain.csv
+
+	# Again again, let cURL breath
+	sleep 1
+
+	# Grabbing OSINT information
+	echo "[+] Pulling RiskIQ OSINT information..."
+	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/enrichment/osint?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_2.json 2>&1
+	jq -r '.results[] | [.source, .sourceUrl] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_2.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_OSINT_$domain.csv
+
+	# Grabbing SSL certificate information
+	echo "[+] Pulling RiskIQ SSL Certificate information via the Common Name..."
+	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/ssl-certificate/search" -XGET -H "Content-Type: application/json" --data '{"field": "subjectCommonName", "query": "$domain"}' >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_3.json 2>&1
+	jq -r '.results[] | [.subjectCountry, .issuerCommonName, .issuerProvince, .subjectStateOrProvinceName, .subjectStreetAddress, .issuerStateOrProvinceName, .subjectSurname, .issuerCountry, .subjectLocalityName, .issuerOrganizationUnitName, .firstSeen, .lastSeen, .expirationDate, .issueDate, .issuerOrganizationName, .subjectEmailAddress, .subjectOrganizationName, .sha1, .issuerLocalityName, .serialNumber, .subjectCommonName, .subjectProvince, .issuerGivenName, .subjectOrganizationUnitName, .subjectOrganizationUnitName, .subjectGivenName, .subjectSerialNumber, .sslVersion, .issuerStreetAddress, .fingerprint, .issuerSerialNumber, .issuerSurname] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_3.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SSL_CERTS_$domain.csv
+
+	# Clean up
+	echo "[+] Cleaning up!"
+	rm $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/*.json
+
 }
 
 risk_iq
-
-#TODO
-# 1. Add more RiskIQ queries
-# 2. Output json to file and parse json into csv
