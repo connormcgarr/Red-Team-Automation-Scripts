@@ -161,6 +161,7 @@ function run_shodan
 
 run_shodan
 
+# RiskIQ function
 function risk_iq
 {
 
@@ -221,6 +222,7 @@ function risk_iq
 
 risk_iq
 
+# https://crt.sh function
 function crt_sh
 {
 
