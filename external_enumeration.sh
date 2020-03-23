@@ -127,7 +127,7 @@ echo "[+] A cleaner version of dig DNS records for $domain is located in Cleaned
 # Shodan function
 function run_shodan
 {
-
+	# Initialize Shodan API
 	shodan init $shodan_api >/dev/null
 
 	# Create shodan directory to store Shodan results
@@ -164,7 +164,6 @@ run_shodan
 # RiskIQ function
 function risk_iq
 {
-
 	# Create directory for RiskIQ API queries
 	mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output
 
@@ -225,11 +224,9 @@ risk_iq
 # https://crt.sh function
 function crt_sh
 {
-
 	echo "[+] Pulling crt.sh SSL certificate information for $domain..."
 	curl -s https://crt.sh/?q=$domain >> $PWD/INITIAL_EXTERNAL_ENUMERATION/temp.txt
 	cat $PWD/INITIAL_EXTERNAL_ENUMERATION/temp.txt | grep $domain | grep TD | sed -e 's/<//g' | sed -e 's/>//g' | sed -e 's/TD//g' | sed -e 's/\///g' | sed -e 's/ //g' | sed -n '1!p' | grep -v "*" | sort -u >> $PWD/INITIAL_EXTERNAL_ENUMERATION/CRT_SSL_CERTS_Output_$domain.txt
-
 }
 
 crt_sh
