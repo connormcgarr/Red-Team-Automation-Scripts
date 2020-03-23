@@ -189,6 +189,7 @@ function risk_iq
 	echo "[+] Pulling RiskIQ subdomain information..."
 	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/enrichment/subdomains?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_1.json 2>&1
 	jq -r '.subdomains | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_1.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SUBDOMAINS_$domain.csv
+	sed -i 's/,/\n/g' $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SUBDOMAINS_$domain.csv
 
 	# Again again, let cURL breath
 	sleep 1
