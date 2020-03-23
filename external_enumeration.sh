@@ -164,8 +164,6 @@ run_shodan
 function risk_iq
 {
 
-	query = "{'field': 'subjectCommonName', 'query': '$domain'}"
-
 	# Create directory for RiskIQ API queries
 	mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output
 
