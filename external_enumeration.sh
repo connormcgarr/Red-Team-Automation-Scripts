@@ -164,6 +164,8 @@ run_shodan
 function risk_iq
 {
 
+	query = "{'field': 'subjectCommonName', 'query': '$domain'}"
+
 	# Create directory for RiskIQ API queries
 	mkdir $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output
 
@@ -177,7 +179,7 @@ function risk_iq
 
 	# Grabbing RiskIQ DNS information
 	echo "[+] Pulling RiskIQ DNS information..."
-	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/dns/passive?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json
+	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/dns/passive?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json 2>&1
 	jq -r '.results[] | [.resolve, .recordType, .firstSeen, .lastSeen | tostring] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_DNS_RECORDS_$domain.csv
 
 	# Again, let cURL breath
@@ -198,7 +200,13 @@ function risk_iq
 
 	# Grabbing SSL certificate information
 	echo "[+] Pulling RiskIQ SSL Certificate information via the Common Name..."
-	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/ssl-certificate/search" -XGET -H "Content-Type: application/json" --data '{"field": "subjectCommonName", "query": "$domain"}' >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_3.json 2>&1
+
+	# cURL doesn't play nicely with quotes inside of a Bash script.
+	# Instead, store the command inside of a variable and then evaluate that variable.
+	curlCommand="curl -g -u $risk_iq_email:$risk_iq_api 'https://api.passivetotal.org/v2/ssl-certificate/search' -XGET -H 'Content-Type: application/json' --data '{\"field\": \"subjectCommonName\", \"query\": \"$domain\"}'" 
+	
+	# Evaluate curlCommand to execute- due to quotes
+	eval $curlCommand >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_3.json 2>&1
 	jq -r '.results[] | [.subjectCountry, .issuerCommonName, .issuerProvince, .subjectStateOrProvinceName, .subjectStreetAddress, .issuerStateOrProvinceName, .subjectSurname, .issuerCountry, .subjectLocalityName, .issuerOrganizationUnitName, .firstSeen, .lastSeen, .expirationDate, .issueDate, .issuerOrganizationName, .subjectEmailAddress, .subjectOrganizationName, .sha1, .issuerLocalityName, .serialNumber, .subjectCommonName, .subjectProvince, .issuerGivenName, .subjectOrganizationUnitName, .subjectOrganizationUnitName, .subjectGivenName, .subjectSerialNumber, .sslVersion, .issuerStreetAddress, .fingerprint, .issuerSerialNumber, .issuerSurname] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_3.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SSL_CERTS_$domain.csv
 
 	# Clean up
