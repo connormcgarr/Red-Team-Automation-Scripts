@@ -144,7 +144,7 @@ function run_shodan
 	shodan parse --fields ip_str,port,org --separator , search.json.gz >> $PWD/INITIAL_EXTERNAL_ENUMERATION/Shodan_Output/WEB_SERVERS_SHODAN_OUTPUT.csv
 
 	# SSL certificates notice
-	echo -e "\e[93m[+] Please note- if the name of the organization is different than $domain_no_com- please perform a manual search for SSL certificates referencing the organization...\e[0m"
+	echo -e "\e[93m[+] Please note- if the name of the organization is different than \e[31m$domain_no_com\e[0m\e[93m- please perform a manual search for Shodan SSL certificates referencing the organization...\e[0m"
 
 	# Sleep to allow user to read information above
 	sleep 5
@@ -177,7 +177,7 @@ function risk_iq
 
 	# Grabbing RiskIQ DNS information
 	echo "[+] Pulling RiskIQ DNS information..."
-	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/dns/passive?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json 2>&1
+	curl -s -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/dns/passive?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json 2>&1
 	jq -r '.results[] | [.resolve, .recordType, .firstSeen, .lastSeen | tostring] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_DNS_RECORDS_$domain.csv
 
 	# Again, let cURL breath
@@ -185,10 +185,12 @@ function risk_iq
 
 	# Grabbing RiskIQ subdomain information
 	echo "[+] Pulling RiskIQ subdomain information..."
-	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/enrichment/subdomains?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_1.json 2>&1
+	curl -s -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/enrichment/subdomains?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_1.json 2>&1
 	jq -r '.subdomains | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_1.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SUBDOMAINS_$domain.csv
-	sed -i 's/,/\n/g' $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SUBDOMAINS_$domain.csv
 	
+	# Convert CSV to one column
+	sed -i 's/,/\n/g' $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SUBDOMAINS_$domain.csv
+
 	# Append domain to the end of each line
 	sed -i "s/\"$/.$domain\"/" $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SUBDOMAINS_$domain.csv
 
@@ -197,7 +199,7 @@ function risk_iq
 
 	# Grabbing OSINT information
 	echo "[+] Pulling RiskIQ OSINT information..."
-	curl -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/enrichment/osint?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_2.json 2>&1
+	curl -s -u "$risk_iq_email:$risk_iq_api" "https://api.passivetotal.org/v2/enrichment/osint?query=$domain" >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_2.json 2>&1
 	jq -r '.results[] | [.source, .sourceUrl] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_2.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_OSINT_$domain.csv
 
 	# Grabbing SSL certificate information
@@ -205,8 +207,8 @@ function risk_iq
 
 	# cURL doesn't play nicely with quotes inside of a Bash script.
 	# Instead, store the command inside of a variable and then evaluate that variable.
-	curlCommand="curl -g -u $risk_iq_email:$risk_iq_api 'https://api.passivetotal.org/v2/ssl-certificate/search' -XGET -H 'Content-Type: application/json' --data '{\"field\": \"subjectCommonName\", \"query\": \"$domain\"}'" 
-	
+	curlCommand="curl -s -g -u $risk_iq_email:$risk_iq_api 'https://api.passivetotal.org/v2/ssl-certificate/search' -XGET -H 'Content-Type: application/json' --data '{\"field\": \"subjectCommonName\", \"query\": \"$domain\"}'" 
+
 	# Evaluate curlCommand to execute- due to quotes
 	eval $curlCommand >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_3.json 2>&1
 	jq -r '.results[] | [.subjectCountry, .issuerCommonName, .issuerProvince, .subjectStateOrProvinceName, .subjectStreetAddress, .issuerStateOrProvinceName, .subjectSurname, .issuerCountry, .subjectLocalityName, .issuerOrganizationUnitName, .firstSeen, .lastSeen, .expirationDate, .issueDate, .issuerOrganizationName, .subjectEmailAddress, .subjectOrganizationName, .sha1, .issuerLocalityName, .serialNumber, .subjectCommonName, .subjectProvince, .issuerGivenName, .subjectOrganizationUnitName, .subjectOrganizationUnitName, .subjectGivenName, .subjectSerialNumber, .sslVersion, .issuerStreetAddress, .fingerprint, .issuerSerialNumber, .issuerSurname] | @csv' < $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/data_3.json >> $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/RISKIQ_SSL_CERTS_$domain.csv
@@ -218,3 +220,14 @@ function risk_iq
 }
 
 risk_iq
+
+function crt_sh
+{
+
+	echo "[+] Pulling crt.sh SSL certificate information for $domain..."
+	curl -s https://crt.sh/?q=$domain >> $PWD/INITIAL_EXTERNAL_ENUMERATION/temp.txt
+	cat $PWD/INITIAL_EXTERNAL_ENUMERATION/temp.txt | grep $domain | grep TD | sed -e 's/<//g' | sed -e 's/>//g' | sed -e 's/TD//g' | sed -e 's/\///g' | sed -e 's/ //g' | sed -n '1!p' | grep -v "*" | sort -u >> $PWD/INITIAL_EXTERNAL_ENUMERATION/CRT_SSL_CERTS_Output_$domain.txt
+
+}
+
+crt_sh
