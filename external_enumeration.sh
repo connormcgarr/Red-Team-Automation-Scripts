@@ -216,7 +216,6 @@ function risk_iq
 	# Clean up
 	echo "[+] Cleaning up!"
 	rm $PWD/INITIAL_EXTERNAL_ENUMERATION/RiskIQ_Output/*.json
-
 }
 
 risk_iq
